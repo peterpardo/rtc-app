@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const cookieParse = require("cookie-parser");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const connectDB = require("./lib/db");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,5 +22,6 @@ app.use(
 app.use("/api/auth", require("./routes/auth.route"));
 
 app.listen(PORT, () => {
-  console.log(`Server running on port=${PORT}`);
+  console.log(`Server running on PORT:${PORT}`);
+  connectDB();
 });
