@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const cookieParse = require("cookie-parser");
+const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./lib/db");
