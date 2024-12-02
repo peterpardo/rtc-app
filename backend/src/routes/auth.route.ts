@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import { z } from "zod";
 import User from "../models/user.model";
 
 const router = express.Router();
@@ -11,26 +12,30 @@ interface UserBody {
   confirmPassword: string;
 }
 
+const userSchema = z
+  .object({
+    email: z.string().email(),
+    firstName: z.string(),
+    lastName: z.string(),
+    password: z.string().min(6, "Password must be atleast 6 characters"),
+    confirmPassword: z.string().min(6),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    message: "Passwords do not match. Please try again.",
+    path: ["confirmPassword"],
+  });
+
 router.post(
   "/signup",
   async (req: Request<{}, {}, UserBody>, res: Response): Promise<any> => {
     const { email, firstName, lastName, password, confirmPassword } = req.body;
 
     try {
-      if (!email || !firstName || !lastName || !password || !confirmPassword) {
-        return res.status(400).json({ message: "All fields are required." });
-      }
+      const result = userSchema.safeParse(req.body);
 
-      if (password.length < 6) {
-        return res
-          .status(400)
-          .json({ message: "Password must be atleast 6 characters" });
-      }
-
-      if (password !== confirmPassword) {
-        return res
-          .status(400)
-          .json({ message: "Passwords do not match. Please try again." });
+      if (!result.success) {
+        res.status(400).json({ message: result.error.format() });
+        return;
       }
 
       const user = await User.findOne({ email });
