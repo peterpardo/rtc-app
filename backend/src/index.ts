@@ -5,6 +5,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./lib/db";
 import authRoutes from "./routes/auth.route";
+import errorHandler from "./middleware/errorHandler";
 
 const app = express();
 const appRouter = express.Router();
@@ -26,6 +27,9 @@ appRouter.use("/auth", authRoutes);
 
 // main route
 app.use("/api", appRouter);
+
+// global error handler
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on PORT:${PORT}`);

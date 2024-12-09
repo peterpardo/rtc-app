@@ -1,71 +1,91 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { loginSchema, signupSchema } from "../schemas/auth.schema";
-import { LoginBody, SignupBody } from "../types/auth";
+import {
+  ApiResponse,
+  LoginBody,
+  SignupBody,
+  SignupResponse,
+} from "../types/auth";
 import bcrypt from "bcrypt";
+import { AppError } from "../middleware/errorHandler";
 
 const router = express.Router();
 
 router.post(
   "/signup",
-  async (req: Request<{}, {}, SignupBody>, res: Response): Promise<any> => {
+  async (
+    req: Request<{}, {}, SignupBody>,
+    res: Response<SignupResponse>,
+    next: NextFunction
+  ): Promise<any> => {
     try {
       const { success, error, data } = signupSchema.safeParse(req.body);
 
       if (!success) {
-        res.status(400).json({ message: error.format() });
-        return;
+        throw new AppError({ success: false, message: error.format() }, 400);
       }
 
       const { email, firstName, lastName, password } = data;
       const user = await User.findOne({ email });
 
       if (user) {
-        return res.status(400).json({ message: "Email already exists" });
+        throw new AppError(
+          { success: false, message: "Email already exists" },
+          400
+        );
       }
 
       const newUser = new User({ email, firstName, lastName, password });
 
       if (newUser) {
         await newUser.save();
-        return res.json({ message: "Signup success.", user: newUser });
+        return res.json({ success: true, data: newUser });
       } else {
-        return res.status(400).json({ message: "Invalid user data" });
+        throw new AppError(
+          { success: false, message: "Invalid user data" },
+          400
+        );
       }
     } catch (error) {
-      console.log("Error in signup route", error);
-      return res.status(500).json({ message: "Internal server error." });
+      next(error);
     }
   }
 );
 
 router.post(
   "/login",
-  async (req: Request<{}, {}, LoginBody>, res: Response): Promise<any> => {
+  async (
+    req: Request<{}, {}, LoginBody>,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> => {
     try {
       const { success, error, data } = loginSchema.safeParse(req.body);
 
       if (!success) {
-        return res.status(400).json({ message: error?.format() });
+        throw new AppError({ success: false, message: error.format() }, 400);
       }
 
       const { email, password } = data;
       const user = await User.findOne({ email });
 
       if (!user) {
-        return res.status(400).json({ message: "Invalid email" });
+        throw new AppError({ success: false, message: "Invalid Email" }, 400);
       }
 
       const isValid = await bcrypt.compare(password, user.password);
 
       if (isValid) {
-        return res.json({ message: "Successfully logged in.", data: user });
+        return res.json({ success: true, data: user });
       } else {
-        return res.json({ message: "Invalid credentials" });
+        throw new AppError(
+          { success: false, message: "Invalid Credentials" },
+          400
+        );
       }
     } catch (error) {
-      console.log("Login error ", error);
-      return res.status(500).json({ message: "Internal server error." });
+      next(error);
     }
   }
 );
