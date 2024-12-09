@@ -1,12 +1,7 @@
 import express, { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { loginSchema, signupSchema } from "../schemas/auth.schema";
-import {
-  ApiResponse,
-  LoginBody,
-  SignupBody,
-  SignupResponse,
-} from "../types/auth";
+import { LoginBody, SignupBody, ApiResponse } from "../types/auth";
 import bcrypt from "bcrypt";
 import { AppError } from "../middleware/errorHandler";
 
@@ -16,36 +11,30 @@ router.post(
   "/signup",
   async (
     req: Request<{}, {}, SignupBody>,
-    res: Response<SignupResponse>,
+    res: Response<ApiResponse>,
     next: NextFunction
   ): Promise<any> => {
     try {
       const { success, error, data } = signupSchema.safeParse(req.body);
 
       if (!success) {
-        throw new AppError({ success: false, message: error.format() }, 400);
+        throw new AppError({ message: error.format() }, 400);
       }
 
       const { email, firstName, lastName, password } = data;
       const user = await User.findOne({ email });
 
       if (user) {
-        throw new AppError(
-          { success: false, message: "Email already exists" },
-          400
-        );
+        throw new AppError({ message: "Email already exists" }, 400);
       }
 
       const newUser = new User({ email, firstName, lastName, password });
 
       if (newUser) {
         await newUser.save();
-        return res.json({ success: true, data: newUser });
+        return res.json({ status: "success", data: newUser });
       } else {
-        throw new AppError(
-          { success: false, message: "Invalid user data" },
-          400
-        );
+        throw new AppError({ message: "Invalid user data" }, 400);
       }
     } catch (error) {
       next(error);
@@ -57,32 +46,29 @@ router.post(
   "/login",
   async (
     req: Request<{}, {}, LoginBody>,
-    res: Response,
+    res: Response<ApiResponse>,
     next: NextFunction
   ): Promise<any> => {
     try {
       const { success, error, data } = loginSchema.safeParse(req.body);
 
       if (!success) {
-        throw new AppError({ success: false, message: error.format() }, 400);
+        throw new AppError({ message: error.format() }, 400);
       }
 
       const { email, password } = data;
       const user = await User.findOne({ email });
 
       if (!user) {
-        throw new AppError({ success: false, message: "Invalid Email" }, 400);
+        throw new AppError({ message: "Invalid Email" }, 400);
       }
 
       const isValid = await bcrypt.compare(password, user.password);
 
       if (isValid) {
-        return res.json({ success: true, data: user });
+        return res.json({ status: "success", data: user });
       } else {
-        throw new AppError(
-          { success: false, message: "Invalid Credentials" },
-          400
-        );
+        throw new AppError({ message: "Invalid Credentials" }, 400);
       }
     } catch (error) {
       next(error);

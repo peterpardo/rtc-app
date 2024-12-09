@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { ApiResponse } from "../types/auth";
+import { ErrorResponse } from "../types/auth";
 
 export class AppError extends Error {
   public statusCode: number | undefined;
 
-  constructor(message: ApiResponse, statusCode?: number) {
+  constructor(message: ErrorResponse, statusCode?: number) {
     super(typeof message === "string" ? message : JSON.stringify(message));
     this.statusCode = statusCode;
   }

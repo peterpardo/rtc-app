@@ -11,12 +11,11 @@ export interface LoginBody {
   password: string;
 }
 
-export interface SignupResponse<T = any> {
-  success: boolean;
+export interface ApiResponse<T = any> {
+  status: "success" | "error";
   data: T;
 }
 
-export interface ApiResponse<T = any> {
-  success: boolean;
+export interface ErrorResponse<T = any> {
   message: string | T;
 }
