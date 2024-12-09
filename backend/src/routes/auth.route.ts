@@ -1,43 +1,23 @@
 import express, { Request, Response } from "express";
-import { z } from "zod";
 import User from "../models/user.model";
+import { loginSchema, signupSchema } from "../schemas/auth.schema";
+import { LoginBody, SignupBody } from "../types/auth";
+import bcrypt from "bcrypt";
 
 const router = express.Router();
 
-interface UserBody {
-  email: string;
-  firstName: string;
-  lastName: string;
-  password: string;
-  confirmPassword: string;
-}
-
-const userSchema = z
-  .object({
-    email: z.string().email(),
-    firstName: z.string(),
-    lastName: z.string(),
-    password: z.string().min(6, "Password must be atleast 6 characters"),
-    confirmPassword: z.string().min(6),
-  })
-  .refine((value) => value.password === value.confirmPassword, {
-    message: "Passwords do not match. Please try again.",
-    path: ["confirmPassword"],
-  });
-
 router.post(
   "/signup",
-  async (req: Request<{}, {}, UserBody>, res: Response): Promise<any> => {
-    const { email, firstName, lastName, password, confirmPassword } = req.body;
-
+  async (req: Request<{}, {}, SignupBody>, res: Response): Promise<any> => {
     try {
-      const result = userSchema.safeParse(req.body);
+      const { success, error, data } = signupSchema.safeParse(req.body);
 
-      if (!result.success) {
-        res.status(400).json({ message: result.error.format() });
+      if (!success) {
+        res.status(400).json({ message: error.format() });
         return;
       }
 
+      const { email, firstName, lastName, password } = data;
       const user = await User.findOne({ email });
 
       if (user) {
@@ -59,13 +39,35 @@ router.post(
   }
 );
 
-router.post("/login", async (req: Request<{}, {}, UserBody>, res: Response) => {
-  const { email, password } = req.body;
-  try {
-    res.json({ message: "Login route" });
-  } catch (error) {
-    console.log("login error");
+router.post(
+  "/login",
+  async (req: Request<{}, {}, LoginBody>, res: Response): Promise<any> => {
+    try {
+      const { success, error, data } = loginSchema.safeParse(req.body);
+
+      if (!success) {
+        return res.status(400).json({ message: error?.format() });
+      }
+
+      const { email, password } = data;
+      const user = await User.findOne({ email });
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid email" });
+      }
+
+      const isValid = await bcrypt.compare(password, user.password);
+
+      if (isValid) {
+        return res.json({ message: "Successfully logged in.", data: user });
+      } else {
+        return res.json({ message: "Invalid credentials" });
+      }
+    } catch (error) {
+      console.log("Login error ", error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
   }
-});
+);
 
 export default router;
