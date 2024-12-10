@@ -4,6 +4,7 @@ import { loginSchema, signupSchema } from "../schemas/auth.schema";
 import { LoginBody, SignupBody, ApiResponse } from "../types/auth";
 import bcrypt from "bcrypt";
 import { AppError } from "../middleware/errorHandler";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -66,7 +67,18 @@ router.post(
       const isValid = await bcrypt.compare(password, user.password);
 
       if (isValid) {
-        return res.json({ status: "success", data: user });
+        const token = jwt.sign(
+          {
+            id: user._id,
+            email: user.email,
+          },
+          process.env.JWT_SECRET || "default_secret_key",
+          {
+            expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+          }
+        );
+
+        return res.json({ status: "success", data: { user, token } });
       } else {
         throw new AppError({ message: "Invalid Credentials" }, 400);
       }
