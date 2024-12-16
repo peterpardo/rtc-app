@@ -31,7 +31,11 @@ app.use("/api", appRouter);
 // global error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on PORT:${PORT}`);
-  connectDB();
-});
+if (process.env.NODE_ENV !== "testing") {
+  app.listen(PORT, () => {
+    console.log(`Server running on PORT:${PORT}`);
+    connectDB();
+  });
+}
+
+export default app;
