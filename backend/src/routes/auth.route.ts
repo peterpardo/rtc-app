@@ -61,7 +61,7 @@ router.post(
       const user = await User.findOne({ email });
 
       if (!user) {
-        throw new AppError({ message: "Invalid Email" }, 400);
+        throw new AppError({ message: "User does not exists" }, 400);
       }
 
       const isValid = await bcrypt.compare(password, user.password);
