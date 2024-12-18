@@ -25,12 +25,18 @@ const mockUser = {
 
 describe("Auth Routes", () => {
   describe("/api/auth/login", () => {
-    vi.spyOn(User, "findOne").mockResolvedValue(mockUser);
+    vi.spyOn(User, "findOne").mockImplementation((query: any): any => {
+      if (query.email === "admin@test.com") {
+        return Promise.resolve(mockUser);
+      } else {
+        return Promise.resolve(null);
+      }
+    });
 
     it("should return 200 for valid login credentials", async () => {
       const response = await request(app)
         .post("/api/auth/login")
-        .send({ email: "jane@test.com", password: "123456" });
+        .send({ email: "admin@test.com", password: "123456" });
       expect(response.status).toBe(200);
       expect(response.body.status).toBe("success");
     });
@@ -38,17 +44,27 @@ describe("Auth Routes", () => {
     it("should return 400 for invalid credentials", async () => {
       const response = await request(app)
         .post("/api/auth/login")
-        .send({ email: "jane@test.com", password: "1234563" });
+        .send({ email: "admin@test.com", password: "1234563" });
+
       expect(response.status).toBe(400);
       expect(response.body.status).toBe("error");
       expect(response.body.message.message).toBe("Invalid Credentials");
+    });
+
+    it("should return 400 if user does not exists", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({ email: "nonexistent@test.com", password: "123456" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.status).toBe("error");
+      expect(response.body.message.message).toBe("User does not exists");
     });
 
     it("should return 400 for missing email field", async () => {
       const response = await request(app)
         .post("/api/auth/login")
         .send({ password: "1234563" });
-
       expect(response.status).toBe(400);
       expect(response.body.status).toBe("error");
       expect(response.body.message.message.email._errors[0]).toBe("Required");
@@ -57,8 +73,7 @@ describe("Auth Routes", () => {
     it("should return 400 for missing password field", async () => {
       const response = await request(app)
         .post("/api/auth/login")
-        .send({ email: "jane@test.com" });
-
+        .send({ email: "admin@test.com" });
       expect(response.status).toBe(400);
       expect(response.body.status).toBe("error");
       expect(response.body.message.message.password._errors[0]).toBe(
@@ -78,4 +93,18 @@ describe("Auth Routes", () => {
       );
     });
   });
+
+  // describe("/api/auth/signup", () => {
+  //   it("should return 200 when signup is successful", async () => {
+  //     vi.spyOn(User.prototype, "save").mockRejectedValue(mockUser);
+
+  //     const response = await request(app).post("/api/auth/signup").send({
+  //       email: "test@test.com",
+  //       firstName: "Test",
+  //       lastName: "Test",
+  //       password: "123456",
+  //       confirmPassword: "123456",
+  //     });
+  //   });
+  // });
 });
